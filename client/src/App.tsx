@@ -5,31 +5,51 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import PropertyDetail from "./pages/PropertyDetail";
+import Dashboard from "./pages/Dashboard";
+import PropertyManagement from "./pages/PropertyManagement";
+import Bookings from "./pages/Bookings";
+import Messages from "./pages/Messages";
+import Reviews from "./pages/Reviews";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Header from "./components/Header";
 
+/**
+ * Nestify - PG & Hostel Finder
+ * Design: Warm Hospitality - Organic shapes, warm colors (coral, gold, sage green), rounded corners
+ * Typography: Poppins (display), Nunito (body)
+ * Color Palette: Coral (#ff6b6b), Gold (#ffd93d), Sage Green (#6bcf7f), Cream (#fffbf0)
+ */
 
 function Router() {
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <main>
+        <Switch>
+          <Route path={"/"} component={Home} />
+          <Route path={"/login"} component={Login} />
+          <Route path={"/signup"} component={Signup} />
+          <Route path={"/property/:id"} component={PropertyDetail} />
+          <Route path={"/dashboard"} component={Dashboard} />
+          <Route path={"/my-properties"} component={PropertyManagement} />
+          <Route path={"/bookings"} component={Bookings} />
+          <Route path={"/messages"} component={Messages} />
+          <Route path={"/reviews"} component={Reviews} />
+          <Route path={"/404"} component={NotFound} />
+          {/* Final fallback route */}
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+    </div>
   );
 }
-
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
           <Router />

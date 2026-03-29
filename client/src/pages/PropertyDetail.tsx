@@ -1,0 +1,196 @@
+import { useRoute } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { MapPin, Phone, Mail, MessageSquare, Share2 } from "lucide-react";
+import { getPropertyById } from "@/lib/propertyData";
+
+/**
+ * Property Detail Page - Warm Hospitality Design
+ * Features: Full property information, images, amenities, contact, booking
+ */
+
+export default function PropertyDetail() {
+  const [, params] = useRoute("/property/:id");
+  const propertyId = params?.id ? parseInt(params.id) : 1;
+  const property = getPropertyById(propertyId);
+
+  if (!property) {
+    return (
+      <div className="min-h-screen bg-background py-8">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="font-display text-3xl font-bold text-foreground mb-4">
+            Property Not Found
+          </h1>
+          <p className="text-muted-foreground">
+            The property you're looking for doesn't exist.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background py-8">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            {/* Image */}
+            <div className="mb-6 rounded-2xl overflow-hidden h-96 bg-muted">
+              <img
+                src={property.image}
+                alt={property.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Details */}
+            <Card className="p-6 rounded-2xl mb-6">
+              <h1 className="font-display text-3xl font-bold text-foreground mb-2">
+                {property.name}
+              </h1>
+              <div className="flex items-center gap-2 text-muted-foreground mb-4">
+                <MapPin className="w-5 h-5" />
+                {property.location}
+              </div>
+
+              <div className="prose prose-sm max-w-none mb-6">
+                <p className="text-foreground">{property.description}</p>
+              </div>
+
+              <h2 className="font-display text-2xl font-bold text-foreground mb-4">
+                Amenities
+              </h2>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {property.amenities.map((amenity, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-accent"></div>
+                    <span className="text-foreground">{amenity}</span>
+                  </div>
+                ))}
+              </div>
+
+              <h2 className="font-display text-2xl font-bold text-foreground mb-4">
+                Property Details
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div>
+                  <p className="text-sm text-muted-foreground">Rooms</p>
+                  <p className="font-bold text-foreground">{property.rooms}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Bathrooms</p>
+                  <p className="font-bold text-foreground">{property.bathrooms}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Parking</p>
+                  <p className="font-bold text-foreground">
+                    {property.parking ? "Yes" : "No"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Type</p>
+                  <p className="font-bold text-foreground capitalize">{property.type}</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Reviews Section */}
+            <Card className="p-6 rounded-2xl">
+              <h2 className="font-display text-2xl font-bold text-foreground mb-4">
+                Reviews ({property.reviews})
+              </h2>
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="border-b border-border pb-4 last:border-b-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-foreground">Reviewer {i}</span>
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, j) => (
+                          <span key={j} className="text-yellow-400">
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                      Great place to stay with friendly landlord and good amenities.
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div>
+            {/* Price Card */}
+            <Card className="p-6 rounded-2xl mb-6 bg-gradient-to-br from-primary/10 to-secondary/10">
+              <div className="text-3xl font-bold text-primary mb-2">
+                ₹{property.price}
+              </div>
+              <p className="text-muted-foreground mb-4">per month</p>
+              <Button className="w-full rounded-full bg-primary hover:bg-primary/90 mb-3">
+                Book Now
+              </Button>
+              <Button variant="outline" className="w-full rounded-full">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Message Landlord
+              </Button>
+            </Card>
+
+            {/* Landlord Card */}
+            <Card className="p-6 rounded-2xl mb-6">
+              <h3 className="font-display text-lg font-bold text-foreground mb-4">
+                Landlord Details
+              </h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="text-lg font-bold text-primary">
+                    {property.landlord.name.charAt(0)}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">
+                    {property.landlord.name}
+                  </p>
+                  {property.landlord.verified && (
+                    <p className="text-xs text-accent">✓ Verified</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <a
+                  href={`tel:${property.landlord.phone}`}
+                  className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  {property.landlord.phone}
+                </a>
+                <a
+                  href={`mailto:${property.landlord.email}`}
+                  className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+                >
+                  <Mail className="w-4 h-4" />
+                  {property.landlord.email}
+                </a>
+              </div>
+            </Card>
+
+            {/* Share Card */}
+            <Card className="p-6 rounded-2xl">
+              <h3 className="font-display text-lg font-bold text-foreground mb-4">
+                Share
+              </h3>
+              <Button variant="outline" className="w-full rounded-full">
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Property
+              </Button>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
