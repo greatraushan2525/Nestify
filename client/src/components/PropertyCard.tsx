@@ -1,13 +1,25 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  MapPin,
+  Star,
+  Wifi,
+  Wind,
+  UtensilsCrossed,
+  ParkingCircle,
+  Zap,
+  MessageSquare,
+  Heart,
+  Check,
+} from "lucide-react";
 import { Link } from "wouter";
-import { MapPin, Wifi, UtensilsCrossed, Users, Heart } from "lucide-react";
-import { Property } from "@/lib/propertyData";
 import { useState } from "react";
+import { Property } from "@/lib/propertyData";
 
 /**
- * PropertyCard Component - Reusable property listing card
- * Design: Warm Hospitality - Rounded corners, warm colors, smooth interactions
+ * PropertyCard Component - Warm Hospitality Design
+ * Displays individual property with key information and quick actions
+ * Enhanced with better layout, landlord info, and interactive elements
  */
 
 interface PropertyCardProps {
@@ -15,109 +27,180 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
-  const [isSaved, setIsSaved] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "boys":
+        return "bg-blue-100 text-blue-700";
+      case "girls":
+        return "bg-pink-100 text-pink-700";
+      case "co-ed":
+        return "bg-purple-100 text-purple-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
 
   return (
-    <Link href={`/property/${property.id}`}>
-      <a className="no-underline">
-        <Card className="overflow-hidden hover:shadow-lg transition-all rounded-2xl h-full flex flex-col group">
-          {/* Image Container */}
-          <div className="relative h-48 overflow-hidden bg-muted">
-            <img
-              src={property.image}
-              alt={property.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-            <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold">
-              ₹{property.price}/mo
-            </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                setIsSaved(!isSaved);
-              }}
-              className="absolute top-3 left-3 bg-white/90 hover:bg-white p-2 rounded-full transition-colors"
-            >
-              <Heart
-                className={`w-5 h-5 ${
-                  isSaved ? "fill-primary text-primary" : "text-gray-400"
-                }`}
-              />
-            </button>
+    <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 rounded-2xl bg-card hover:scale-105 flex flex-col h-full">
+      {/* Image Container */}
+      <div className="relative h-48 overflow-hidden bg-muted">
+        <img
+          src={property.image}
+          alt={property.name}
+          className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+        />
+
+        {/* Type Badge */}
+        <div className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold ${getTypeColor(property.type)}`}>
+          {property.type.charAt(0).toUpperCase() + property.type.slice(1)}
+        </div>
+
+        {/* Favorite Button */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            setIsFavorite(!isFavorite);
+          }}
+          className="absolute top-4 right-4 p-2 rounded-full bg-white/90 hover:bg-white transition-colors shadow-md"
+        >
+          <Heart
+            className={`w-5 h-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-gray-400"}`}
+          />
+        </button>
+
+        {/* Price Badge */}
+        <div className="absolute bottom-4 left-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground px-4 py-2 rounded-full font-bold shadow-lg">
+          ₹{property.price.toLocaleString()}/mo
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 flex-1 flex flex-col">
+        {/* Property Name & Location */}
+        <h3 className="font-display text-lg font-bold text-foreground mb-1 line-clamp-2">
+          {property.name}
+        </h3>
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
+          <MapPin className="w-4 h-4 flex-shrink-0" />
+          <span className="line-clamp-1">{property.location}</span>
+        </div>
+
+        {/* Rating */}
+        <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
+          <div className="flex items-center">
+            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+            <span className="ml-1 font-semibold text-foreground text-sm">{property.rating}</span>
           </div>
+          <span className="text-xs text-muted-foreground">({property.reviews} reviews)</span>
+        </div>
 
-          {/* Content */}
-          <div className="p-4 flex-1 flex flex-col">
-            <h3 className="font-display text-lg font-bold text-foreground mb-1 line-clamp-2">
-              {property.name}
-            </h3>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
-              <MapPin className="w-4 h-4 flex-shrink-0" />
-              <span className="line-clamp-1">{property.location}</span>
-            </div>
+        {/* Amenities Grid */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="flex flex-col items-center text-center">
+            {property.wifi ? (
+              <>
+                <Wifi className="w-5 h-5 text-primary mb-1" />
+                <span className="text-xs font-medium text-foreground">WiFi</span>
+              </>
+            ) : (
+              <>
+                <Wifi className="w-5 h-5 text-gray-300 mb-1" />
+                <span className="text-xs text-gray-300">No WiFi</span>
+              </>
+            )}
+          </div>
+          <div className="flex flex-col items-center text-center">
+            {property.ac ? (
+              <>
+                <Wind className="w-5 h-5 text-primary mb-1" />
+                <span className="text-xs font-medium text-foreground">AC</span>
+              </>
+            ) : (
+              <>
+                <Wind className="w-5 h-5 text-gray-300 mb-1" />
+                <span className="text-xs text-gray-300">No AC</span>
+              </>
+            )}
+          </div>
+          <div className="flex flex-col items-center text-center">
+            {property.food ? (
+              <>
+                <UtensilsCrossed className="w-5 h-5 text-primary mb-1" />
+                <span className="text-xs font-medium text-foreground">Food</span>
+              </>
+            ) : (
+              <>
+                <UtensilsCrossed className="w-5 h-5 text-gray-300 mb-1" />
+                <span className="text-xs text-gray-300">No Food</span>
+              </>
+            )}
+          </div>
+        </div>
 
-            {/* Rating */}
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <span
-                    key={i}
-                    className={`text-lg ${
-                      i < Math.floor(property.rating)
-                        ? "text-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  >
-                    ★
+        {/* Quick Info */}
+        <div className="grid grid-cols-2 gap-2 mb-4 text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg">
+          <div className="flex items-center gap-1">
+            <Zap className="w-4 h-4 text-primary" />
+            <span>{property.rooms} Rooms</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {property.parking ? (
+              <>
+                <ParkingCircle className="w-4 h-4 text-primary" />
+                <span>Parking</span>
+              </>
+            ) : (
+              <>
+                <ParkingCircle className="w-4 h-4 text-gray-300" />
+                <span>No Parking</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Landlord Info */}
+        <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-lg p-3 mb-4 border border-primary/10">
+          <p className="text-xs text-muted-foreground font-semibold mb-2">Landlord</p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="font-semibold text-sm text-foreground">{property.landlord.name}</p>
+              <div className="flex items-center gap-1 mt-1">
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                <span className="text-xs text-muted-foreground">{property.landlord.rating}</span>
+                {property.landlord.verified && (
+                  <span className="ml-1 flex items-center gap-0.5 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                    <Check className="w-3 h-3" />
+                    Verified
                   </span>
-                ))}
+                )}
               </div>
-              <span className="text-sm text-muted-foreground">
-                {property.rating} ({property.reviews})
-              </span>
-            </div>
-
-            {/* Amenities */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {property.food && (
-                <div className="flex items-center gap-1 bg-accent/10 text-accent px-2 py-1 rounded-full text-xs font-medium">
-                  <UtensilsCrossed className="w-3 h-3" />
-                  Food
-                </div>
-              )}
-              {property.ac && (
-                <div className="flex items-center gap-1 bg-secondary/10 text-secondary px-2 py-1 rounded-full text-xs font-medium">
-                  ❄️
-                  <span>AC</span>
-                </div>
-              )}
-              {property.wifi && (
-                <div className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium">
-                  <Wifi className="w-3 h-3" />
-                  WiFi
-                </div>
-              )}
-            </div>
-
-            {/* Type Badge */}
-            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-4">
-              <Users className="w-4 h-4" />
-              {property.type === "boys"
-                ? "Boys Only"
-                : property.type === "girls"
-                ? "Girls Only"
-                : "Co-ed"}
             </div>
           </div>
+        </div>
 
-          {/* CTA */}
-          <div className="p-4 border-t border-border">
-            <Button className="w-full rounded-full bg-primary hover:bg-primary/90">
-              View Details
-            </Button>
-          </div>
-        </Card>
-      </a>
-    </Link>
+        {/* Action Buttons */}
+        <div className="flex gap-2 mt-auto">
+          <Link href={`/property/${property.id}`} className="flex-1">
+            <a className="no-underline">
+              <Button className="w-full rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                View Details
+              </Button>
+            </a>
+          </Link>
+          <Button
+            variant="outline"
+            className="flex-1 rounded-full border-primary/30 hover:bg-primary/10"
+            onClick={(e) => {
+              e.preventDefault();
+              alert(`Message sent to ${property.landlord.name}`);
+            }}
+          >
+            <MessageSquare className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }
