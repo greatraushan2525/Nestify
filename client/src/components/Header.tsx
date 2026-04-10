@@ -1,7 +1,8 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Heart } from "lucide-react";
 import { useState } from "react";
+import NotificationBell from "./NotificationBell";
 
 /**
  * Header Component - Warm Hospitality Design
@@ -54,6 +55,12 @@ export default function Header() {
 
         {/* User Actions */}
         <div className="hidden md:flex items-center gap-3">
+          <Link href="/wishlist">
+            <a className="p-2 hover:bg-muted rounded-full transition-colors">
+              <Heart className="w-6 h-6 text-foreground" />
+            </a>
+          </Link>
+          <NotificationBell />
           {isLoggedIn ? (
             <>
               <Link href="/dashboard">

@@ -15,6 +15,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Header from "./components/Header";
 import Chatbot from "./components/Chatbot";
+import Wishlist from "./pages/Wishlist";
+import { WishlistProvider } from "./contexts/WishlistContext";
 
 /**
  * Nestify - PG & Hostel Finder
@@ -38,7 +40,8 @@ function Router() {
           <Route path={"/my-properties"} component={PropertyManagement} />
           <Route path={"/bookings"} component={Bookings} />
           <Route path={"/messages"} component={Messages} />
-          <Route path={"/reviews"} component={Reviews} />
+          <Route path={"reviews"} component={Reviews} />
+          <Route path={"wishlist"} component={Wishlist} />
           <Route path={"/404"} component={NotFound} />
           {/* Final fallback route */}
           <Route component={NotFound} />
@@ -52,10 +55,12 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <WishlistProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </WishlistProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

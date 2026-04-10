@@ -1,18 +1,23 @@
 import { useRoute } from "wouter";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Phone, Mail, MessageSquare, Share2 } from "lucide-react";
+import { MapPin, Phone, Mail, MessageSquare, Share2, Heart, MessageCircle } from "lucide-react";
 import { getPropertyById } from "@/lib/propertyData";
+import { useWishlist } from "@/contexts/WishlistContext";
+import LiveChat from "@/components/LiveChat";
 
 /**
  * Property Detail Page - Warm Hospitality Design
- * Features: Full property information, images, amenities, contact, booking
+ * Features: Full property information, images, amenities, contact, booking, live chat, wishlist
  */
 
 export default function PropertyDetail() {
   const [, params] = useRoute("/property/:id");
   const propertyId = params?.id ? parseInt(params.id) : 1;
   const property = getPropertyById(propertyId);
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const [showChat, setShowChat] = useState(false);
 
   if (!property) {
     return (
@@ -29,6 +34,8 @@ export default function PropertyDetail() {
     );
   }
 
+  const isSaved = isInWishlist(property.id);
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4">
@@ -36,12 +43,24 @@ export default function PropertyDetail() {
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Image */}
-            <div className="mb-6 rounded-2xl overflow-hidden h-96 bg-muted">
+            <div className="mb-6 rounded-2xl overflow-hidden h-96 bg-muted relative">
               <img
                 src={property.image}
                 alt={property.name}
                 className="w-full h-full object-cover"
               />
+              <button
+                onClick={() =>
+                  isSaved ? removeFromWishlist(property.id) : addToWishlist(property)
+                }
+                className="absolute top-4 right-4 p-3 rounded-full bg-white/90 hover:bg-white transition-colors shadow-lg"
+              >
+                <Heart
+                  className={`w-6 h-6 ${
+                    isSaved ? "fill-red-500 text-red-500" : "text-gray-400"
+                  }`}
+                />
+              </button>
             </div>
 
             {/* Details */}
@@ -127,17 +146,42 @@ export default function PropertyDetail() {
             {/* Price Card */}
             <Card className="p-6 rounded-2xl mb-6 bg-gradient-to-br from-primary/10 to-secondary/10">
               <div className="text-3xl font-bold text-primary mb-2">
-                ₹{property.price}
+                ₹{property.price.toLocaleString()}
               </div>
               <p className="text-muted-foreground mb-4">per month</p>
               <Button className="w-full rounded-full bg-primary hover:bg-primary/90 mb-3">
                 Book Now
               </Button>
-              <Button variant="outline" className="w-full rounded-full">
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Message Landlord
+              <Button
+                variant="outline"
+                className="w-full rounded-full mb-3"
+                onClick={() => setShowChat(!showChat)}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Live Chat
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full rounded-full"
+                onClick={() =>
+                  isSaved ? removeFromWishlist(property.id) : addToWishlist(property)
+                }
+              >
+                <Heart
+                  className={`w-4 h-4 mr-2 ${
+                    isSaved ? "fill-red-500 text-red-500" : ""
+                  }`}
+                />
+                {isSaved ? "Remove from Wishlist" : "Add to Wishlist"}
               </Button>
             </Card>
+
+            {/* Live Chat */}
+            {showChat && (
+              <Card className="p-0 rounded-2xl mb-6 overflow-hidden h-96">
+                <LiveChat property={property} onClose={() => setShowChat(false)} />
+              </Card>
+            )}
 
             {/* Landlord Card */}
             <Card className="p-6 rounded-2xl mb-6">
