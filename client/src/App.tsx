@@ -14,6 +14,7 @@ import Reviews from "./pages/Reviews";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Header from "./components/Header";
+import Chatbot from "./components/Chatbot";
 
 /**
  * Nestify - PG & Hostel Finder
@@ -26,6 +27,7 @@ function Router() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
+      <Chatbot />
       <main>
         <Switch>
           <Route path={"/"} component={Home} />
