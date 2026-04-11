@@ -11,6 +11,8 @@ import {
   MessageSquare,
   Heart,
   Check,
+  BookOpen,
+  Train,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
@@ -158,6 +160,26 @@ export default function PropertyCard({ property }: PropertyCardProps) {
               </>
             )}
           </div>
+        </div>
+
+        {/* Proximity Info */}
+        <div className="space-y-2 mb-4">
+          {property.nearCollege && (
+            <div className="flex items-center gap-2 text-xs bg-blue-50 text-blue-700 p-2 rounded-lg">
+              <BookOpen className="w-3 h-3 flex-shrink-0" />
+              <div className="flex-1 truncate">
+                <span className="font-semibold">{property.nearCollege.distance}</span> from {property.nearCollege.name.split(' ').slice(0, 2).join(' ')}
+              </div>
+            </div>
+          )}
+          {property.nearMetro && (
+            <div className="flex items-center gap-2 text-xs bg-purple-50 text-purple-700 p-2 rounded-lg">
+              <Train className="w-3 h-3 flex-shrink-0" />
+              <div className="flex-1 truncate">
+                <span className="font-semibold">{property.nearMetro.distance}</span> from {property.nearMetro.name}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Landlord Info */}

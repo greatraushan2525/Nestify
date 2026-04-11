@@ -20,9 +20,11 @@ export default function Header() {
         {/* Logo */}
         <Link href="/">
           <a className="flex items-center gap-2 no-underline">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">N</span>
-            </div>
+            <img
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663490327936/TzN54ThndsQfyZ4yvrXWYy/nestify-logo-new-XhSiiisGWjWosbbbN2nk93.webp"
+              alt="Nestify"
+              className="w-10 h-10"
+            />
             <span className="font-display text-xl font-bold text-foreground hidden sm:inline">
               Nestify
             </span>
