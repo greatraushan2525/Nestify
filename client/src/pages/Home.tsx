@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, BookOpen, MapPin } from "lucide-react";
+import { Search, BookOpen, MapPin, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import {
   getAllProperties,
   CITIES,
@@ -13,9 +13,11 @@ import PropertyCard from "@/components/PropertyCard";
 
 /**
  * Home Page - Warm Hospitality Design
- * Features: Hero section, search bar, property listings with filters, Near Colleges section
+ * Features: Hero section, search bar, advanced sorting, pagination, property listings with filters
  * Design: Warm colors, rounded cards, organic layout
  */
+
+type SortOption = "newest" | "price-low" | "price-high" | "rating" | "distance";
 
 export default function Home() {
   const [searchLocation, setSearchLocation] = useState("");
@@ -24,6 +26,9 @@ export default function Home() {
   const [priceFilter, setPriceFilter] = useState<"all" | "low" | "mid" | "high">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "boys" | "girls" | "co-ed">("all");
   const [showNearColleges, setShowNearColleges] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
 
   const allProperties = getAllProperties();
   const locations = selectedCity ? CITY_LOCATIONS[selectedCity] || [] : [];
@@ -66,8 +71,28 @@ export default function Home() {
       filtered = filtered.filter((p) => p.type === typeFilter);
     }
 
+    // Apply sorting
+    if (sortBy === "price-low") {
+      filtered.sort((a, b) => a.price - b.price);
+    } else if (sortBy === "price-high") {
+      filtered.sort((a, b) => b.price - a.price);
+    } else if (sortBy === "rating") {
+      filtered.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === "distance") {
+      filtered.sort((a, b) => {
+        const distA = a.nearMetro ? parseInt(a.nearMetro.distance) : 999;
+        const distB = b.nearMetro ? parseInt(b.nearMetro.distance) : 999;
+        return distA - distB;
+      });
+    }
+
     return filtered;
-  }, [searchLocation, selectedCity, selectedLocation, priceFilter, typeFilter]);
+  }, [searchLocation, selectedCity, selectedLocation, priceFilter, typeFilter, sortBy]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProperties = filteredProperties.slice(startIndex, startIndex + itemsPerPage);
 
   const nearCollegeProperties = useMemo(() => {
     if (!selectedCity) return [];
@@ -107,6 +132,7 @@ export default function Home() {
                 onChange={(e) => {
                   setSelectedCity(e.target.value);
                   setSelectedLocation("");
+                  setCurrentPage(1);
                 }}
                 className="w-full px-3 py-2 rounded-full border border-border bg-background text-foreground font-medium text-sm"
               >
@@ -127,7 +153,10 @@ export default function Home() {
                 </label>
                 <select
                   value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedLocation(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="w-full px-3 py-2 rounded-full border border-border bg-background text-foreground font-medium text-sm"
                 >
                   <option value="">All Locations</option>
@@ -151,7 +180,10 @@ export default function Home() {
                   type="text"
                   placeholder="Area or PG name..."
                   value={searchLocation}
-                  onChange={(e) => setSearchLocation(e.target.value)}
+                  onChange={(e) => {
+                    setSearchLocation(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="pl-9 rounded-full border-border text-sm"
                 />
               </div>
@@ -164,7 +196,10 @@ export default function Home() {
               </label>
               <select
                 value={priceFilter}
-                onChange={(e) => setPriceFilter(e.target.value as any)}
+                onChange={(e) => {
+                  setPriceFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
                 className="w-full px-3 py-2 rounded-full border border-border bg-background text-foreground font-medium text-sm"
               >
                 <option value="all">All Prices</option>
@@ -181,7 +216,10 @@ export default function Home() {
               </label>
               <select
                 value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as any)}
+                onChange={(e) => {
+                  setTypeFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
                 className="w-full px-3 py-2 rounded-full border border-border bg-background text-foreground font-medium text-sm"
               >
                 <option value="all">All Types</option>
@@ -202,6 +240,8 @@ export default function Home() {
                   setSearchLocation("");
                   setPriceFilter("all");
                   setTypeFilter("all");
+                  setSortBy("newest");
+                  setCurrentPage(1);
                 }}
               >
                 Clear
@@ -255,23 +295,83 @@ export default function Home() {
 
       {/* Properties Section */}
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h2 className="font-display text-2xl font-bold text-foreground mb-1">
-            Available Properties
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            {filteredProperties.length} properties found
-            {selectedCity && ` in ${selectedCity}`}
-            {selectedLocation && ` • ${selectedLocation}`}
-          </p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-foreground mb-1">
+              Available Properties
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              {filteredProperties.length} properties found
+              {selectedCity && ` in ${selectedCity}`}
+              {selectedLocation && ` • ${selectedLocation}`}
+            </p>
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value as SortOption);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 rounded-full border border-border bg-background text-foreground font-medium text-sm"
+            >
+              <option value="newest">Newest</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="rating">Highest Rated</option>
+              <option value="distance">Closest to Metro</option>
+            </select>
+          </div>
         </div>
 
-        {filteredProperties.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
-            ))}
-          </div>
+        {paginatedProperties.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {paginatedProperties.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    className="rounded-full min-w-10"
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12">
             <p className="text-lg text-muted-foreground mb-4">
@@ -285,6 +385,8 @@ export default function Home() {
                 setSearchLocation("");
                 setPriceFilter("all");
                 setTypeFilter("all");
+                setSortBy("newest");
+                setCurrentPage(1);
               }}
             >
               Clear Filters & Try Again

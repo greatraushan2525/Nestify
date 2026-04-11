@@ -2,14 +2,16 @@ import { useRoute } from "wouter";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Phone, Mail, MessageSquare, Share2, Heart, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Mail, MessageSquare, Share2, Heart, MessageCircle, BookOpen } from "lucide-react";
 import { getPropertyById } from "@/lib/propertyData";
 import { useWishlist } from "@/contexts/WishlistContext";
 import LiveChat from "@/components/LiveChat";
+import VirtualTour from "@/components/VirtualTour";
+import InstantBooking from "@/components/InstantBooking";
 
 /**
  * Property Detail Page - Warm Hospitality Design
- * Features: Full property information, images, amenities, contact, booking, live chat, wishlist
+ * Features: Virtual tours, instant booking, live chat, wishlist, full property information
  */
 
 export default function PropertyDetail() {
@@ -18,6 +20,7 @@ export default function PropertyDetail() {
   const property = getPropertyById(propertyId);
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const [showChat, setShowChat] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
 
   if (!property) {
     return (
@@ -42,25 +45,9 @@ export default function PropertyDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
-            {/* Image */}
-            <div className="mb-6 rounded-2xl overflow-hidden h-96 bg-muted relative">
-              <img
-                src={property.image}
-                alt={property.name}
-                className="w-full h-full object-cover"
-              />
-              <button
-                onClick={() =>
-                  isSaved ? removeFromWishlist(property.id) : addToWishlist(property)
-                }
-                className="absolute top-4 right-4 p-3 rounded-full bg-white/90 hover:bg-white transition-colors shadow-lg"
-              >
-                <Heart
-                  className={`w-6 h-6 ${
-                    isSaved ? "fill-red-500 text-red-500" : "text-gray-400"
-                  }`}
-                />
-              </button>
+            {/* Virtual Tour */}
+            <div className="mb-6">
+              <VirtualTour property={property} />
             </div>
 
             {/* Details */}
@@ -70,8 +57,26 @@ export default function PropertyDetail() {
               </h1>
               <div className="flex items-center gap-2 text-muted-foreground mb-4">
                 <MapPin className="w-5 h-5" />
-                {property.location}
+                {property.location}, {property.city}
               </div>
+
+              {/* Proximity Info */}
+              {(property.nearCollege || property.nearMetro) && (
+                <div className="grid grid-cols-2 gap-3 mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                  {property.nearCollege && (
+                    <div className="text-sm">
+                      <p className="text-blue-600 font-semibold">{property.nearCollege.distance}</p>
+                      <p className="text-blue-700 text-xs">{property.nearCollege.name}</p>
+                    </div>
+                  )}
+                  {property.nearMetro && (
+                    <div className="text-sm">
+                      <p className="text-purple-600 font-semibold">{property.nearMetro.distance}</p>
+                      <p className="text-purple-700 text-xs">{property.nearMetro.name}</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="prose prose-sm max-w-none mb-6">
                 <p className="text-foreground">{property.description}</p>
@@ -144,12 +149,16 @@ export default function PropertyDetail() {
           {/* Sidebar */}
           <div>
             {/* Price Card */}
-            <Card className="p-6 rounded-2xl mb-6 bg-gradient-to-br from-primary/10 to-secondary/10">
+            <Card className="p-6 rounded-2xl mb-6 bg-gradient-to-br from-primary/10 to-secondary/10 sticky top-8">
               <div className="text-3xl font-bold text-primary mb-2">
                 ₹{property.price.toLocaleString()}
               </div>
               <p className="text-muted-foreground mb-4">per month</p>
-              <Button className="w-full rounded-full bg-primary hover:bg-primary/90 mb-3">
+              <Button
+                className="w-full rounded-full bg-primary hover:bg-primary/90 mb-3 font-semibold"
+                onClick={() => setShowBooking(true)}
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
                 Book Now
               </Button>
               <Button
@@ -235,6 +244,13 @@ export default function PropertyDetail() {
           </div>
         </div>
       </div>
+
+      {/* Instant Booking Modal */}
+      <InstantBooking
+        property={property}
+        isOpen={showBooking}
+        onClose={() => setShowBooking(false)}
+      />
     </div>
   );
 }
