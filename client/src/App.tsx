@@ -40,8 +40,8 @@ function Router() {
           <Route path={"/my-properties"} component={PropertyManagement} />
           <Route path={"/bookings"} component={Bookings} />
           <Route path={"/messages"} component={Messages} />
-          <Route path={"reviews"} component={Reviews} />
-          <Route path={"wishlist"} component={Wishlist} />
+          <Route path={"/reviews"} component={Reviews} />
+          <Route path={"/wishlist"} component={Wishlist} />
           <Route path={"/404"} component={NotFound} />
           {/* Final fallback route */}
           <Route component={NotFound} />
