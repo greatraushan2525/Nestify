@@ -3,16 +3,21 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "dev": "vite --host",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
+    "render-build": "npm run build",
+    "render-start": "npm start",
     "preview": "vite preview --host",
     "check": "tsc --noEmit",
     "format": "prettier --write .",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist/public" 
-},
+    "deploy": "gh-pages -d dist/public"
+  },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
