@@ -16,6 +16,7 @@ import Signup from "./pages/Signup";
 import Header from "./components/Header";
 import Chatbot from "./components/Chatbot";
 import Wishlist from "./pages/Wishlist";
+import Footer from "./components/Footer";
 import { WishlistProvider } from "./contexts/WishlistContext";
 
 /**
@@ -47,6 +48,7 @@ function Router() {
           <Route component={NotFound} />
         </Switch>
       </main>
+      <Footer />
     </div>
   );
 }
