@@ -38,7 +38,7 @@ export default function RealtimeChat({
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [sendingMessages, setSendingMessages] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize Socket.io connection
   useEffect(() => {

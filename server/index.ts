@@ -3,13 +3,11 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import path from "path";
-import { fileURLToPath } from "url";
 
 // Load environment variables
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const appRoot = process.cwd();
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
@@ -385,10 +383,7 @@ app.get("/api/reviews/:propertyId", async (req: Request, res: Response) => {
 // Static File Serving
 // ============================================
 
-const isDevelopment = process.env.NODE_ENV !== "production";
-const distPath = isDevelopment 
-  ? path.resolve(__dirname, "..", "dist", "public")
-  : path.resolve(__dirname, "public");
+const distPath = path.resolve(appRoot, "dist", "public");
 
 app.use(express.static(distPath));
 

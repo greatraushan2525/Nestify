@@ -7,8 +7,5 @@ services:
     root: .
     buildCommand: npm install && npm run build
     startCommand: npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
     healthCheckPath: /
     autoDeploy: true

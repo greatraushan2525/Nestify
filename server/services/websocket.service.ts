@@ -171,7 +171,7 @@ class WebSocketService {
       socket.on("disconnect", () => {
         // Find and remove user
         let disconnectedUserId: string | null = null;
-        for (const [userId, user] of this.activeUsers.entries()) {
+        for (const [userId, user] of Array.from(this.activeUsers.entries())) {
           if (user.socketId === socket.id) {
             disconnectedUserId = userId;
             this.activeUsers.delete(userId);
