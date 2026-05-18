@@ -1,21 +1,28 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Heart } from "lucide-react";
+import { Menu, X, Heart, LogOut } from "lucide-react";
 import { useState } from "react";
 import NotificationBell from "./NotificationBell";
+import ThemeToggle from "./ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Header Component - Warm Hospitality Design
- * Features: Logo, navigation menu, user actions
+ * Features: Logo, navigation menu, user actions, theme toggle, authentication
  * Design: Rounded corners, warm coral accent, responsive mobile menu
  */
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    setMobileMenuOpen(false);
+  };
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
+    <header className="sticky top-0 z-50 bg-background border-b border-border shadow-sm dark:bg-slate-950">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/">
@@ -63,56 +70,49 @@ export default function Header() {
             </a>
           </Link>
           <NotificationBell />
-          {isLoggedIn ? (
+          <ThemeToggle />
+          {user ? (
             <>
-              <Link href="/dashboard">
-                <a className="text-foreground hover:text-primary transition-colors font-body">
-                  Profile
-                </a>
-              </Link>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm font-medium text-foreground hidden sm:inline">
+                  {user.name}
+                </span>
+              </div>
               <Button
                 variant="outline"
-                onClick={() => setIsLoggedIn(false)}
+                onClick={handleLogout}
                 className="rounded-full"
+                size="sm"
               >
+                <LogOut className="w-4 h-4 mr-1" />
                 Logout
               </Button>
             </>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => setIsLoggedIn(true)}
-                className="rounded-full"
-              >
-                Login
-              </Button>
-              <Button
-                className="rounded-full bg-primary hover:bg-primary/90"
-                onClick={() => setIsLoggedIn(true)}
-              >
-                Sign Up
-              </Button>
-            </>
-          )}
+          ) : null}
         </div>
 
         {/* Mobile Menu Toggle */}
-        <button
-          className="md:hidden p-2"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <Menu className="w-6 h-6" />
-          )}
-        </button>
+        <div className="md:hidden flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            className="p-2"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-white">
+        <div className="md:hidden border-t border-border bg-background dark:bg-slate-950">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-4">
             <Link href="/">
               <a className="text-foreground hover:text-primary transition-colors font-body">
@@ -134,39 +134,30 @@ export default function Header() {
                 Messages
               </a>
             </Link>
+            <Link href="/wishlist">
+              <a className="text-foreground hover:text-primary transition-colors font-body flex items-center gap-2">
+                <Heart className="w-4 h-4" />
+                Wishlist
+              </a>
+            </Link>
             <div className="border-t border-border pt-4 flex flex-col gap-2">
-              {isLoggedIn ? (
+              {user ? (
                 <>
-                  <Link href="/dashboard">
-                    <a className="text-foreground hover:text-primary transition-colors font-body">
-                      Profile
-                    </a>
-                  </Link>
+                  <div className="px-3 py-2 rounded-lg bg-muted">
+                    <p className="text-sm font-medium text-foreground">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
                   <Button
                     variant="outline"
-                    onClick={() => setIsLoggedIn(false)}
+                    onClick={handleLogout}
                     className="w-full rounded-full"
+                    size="sm"
                   >
+                    <LogOut className="w-4 h-4 mr-2" />
                     Logout
                   </Button>
                 </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsLoggedIn(true)}
-                    className="w-full rounded-full"
-                  >
-                    Login
-                  </Button>
-                  <Button
-                    className="w-full rounded-full bg-primary hover:bg-primary/90"
-                    onClick={() => setIsLoggedIn(true)}
-                  >
-                    Sign Up
-                  </Button>
-                </>
-              )}
+              ) : null}
             </div>
           </nav>
         </div>

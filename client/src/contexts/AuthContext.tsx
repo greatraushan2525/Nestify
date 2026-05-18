@@ -1,71 +1,138 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 /**
  * Authentication Context
- * Manages user login state and user information
+ * Manages user login state, registration, and user information
  */
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
-  phone: string;
-  avatar: string;
-  role: "user" | "landlord" | "admin";
+  phone?: string;
+  avatar?: string;
+  role: "tenant" | "landlord" | "admin";
   verified: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
-  isLoggedIn: boolean;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  signup: (name: string, email: string, password: string, role: string) => Promise<void>;
+  signup: (name: string, email: string, password: string, role: "tenant" | "landlord") => Promise<void>;
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check if user is already logged in on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        if (token) {
+          // Verify token with backend
+          const response = await fetch("/api/users/me", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+          } else {
+            localStorage.removeItem("authToken");
+          }
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const login = async (email: string, password: string) => {
-    // Mock login - in production, this would call an API
-    const mockUser: User = {
-      id: 1,
-      name: "John Doe",
-      email: email,
-      phone: "+91-9876543210",
-      avatar: "J",
-      role: "user",
-      verified: true,
-    };
-    setUser(mockUser);
-    setIsLoggedIn(true);
+    try {
+      const response = await fetch("/api/users/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Login failed");
+      }
+
+      const { user: userData, token } = await response.json();
+      localStorage.setItem("authToken", token);
+      setUser(userData);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const signup = async (
+    name: string,
+    email: string,
+    password: string,
+    role: "tenant" | "landlord"
+  ) => {
+    try {
+      const response = await fetch("/api/users/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password, role }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Registration failed");
+      }
+
+      const { user: userData, token } = await response.json();
+      localStorage.setItem("authToken", token);
+      setUser(userData);
+    } catch (error) {
+      throw error;
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem("authToken");
     setUser(null);
-    setIsLoggedIn(false);
   };
 
-  const signup = async (name: string, email: string, password: string, role: string) => {
-    // Mock signup - in production, this would call an API
-    const newUser: User = {
-      id: Math.random(),
-      name: name,
-      email: email,
-      phone: "",
-      avatar: name.charAt(0),
-      role: role as "user" | "landlord",
-      verified: false,
-    };
-    setUser(newUser);
-    setIsLoggedIn(true);
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn, login, logout, signup }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        logout,
+        signup,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
