@@ -33,25 +33,37 @@ export default function Home() {
   const allProperties = getAllProperties();
   const locations = selectedCity ? CITY_LOCATIONS[selectedCity] || [] : [];
 
+  const [realProperties, setRealProperties] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/properties")
+      .then((res) => res.json())
+      .then((data) => setRealProperties(data))
+      .catch(console.error);
+  }, []);
+
   const filteredProperties = useMemo(() => {
-    let filtered = allProperties;
+    // Combine static properties with real ones from API
+    let filtered = [...allProperties, ...realProperties];
 
     // Filter by city if selected
     if (selectedCity) {
-      filtered = filtered.filter((p) => p.city === selectedCity);
+      filtered = filtered.filter((p) => p.city.toLowerCase() === selectedCity.toLowerCase());
     }
 
     // Filter by location if selected
     if (selectedLocation) {
-      filtered = filtered.filter((p) => p.location === selectedLocation);
+      filtered = filtered.filter((p) => p.location.toLowerCase() === selectedLocation.toLowerCase());
     }
 
     // Filter by search location
     if (searchLocation) {
+      const search = searchLocation.toLowerCase();
       filtered = filtered.filter(
         (p) =>
-          p.name.toLowerCase().includes(searchLocation.toLowerCase()) ||
-          p.location.toLowerCase().includes(searchLocation.toLowerCase())
+          p.name.toLowerCase().includes(search) ||
+          p.location.toLowerCase().includes(search) ||
+          p.city.toLowerCase().includes(search)
       );
     }
 
@@ -71,23 +83,24 @@ export default function Home() {
       filtered = filtered.filter((p) => p.type === typeFilter);
     }
 
-    // Apply sorting
+    // Apply sorting (create a new array to avoid mutating state)
+    const sorted = [...filtered];
     if (sortBy === "price-low") {
-      filtered.sort((a, b) => a.price - b.price);
+      sorted.sort((a, b) => a.price - b.price);
     } else if (sortBy === "price-high") {
-      filtered.sort((a, b) => b.price - a.price);
+      sorted.sort((a, b) => b.price - a.price);
     } else if (sortBy === "rating") {
-      filtered.sort((a, b) => b.rating - a.rating);
+      sorted.sort((a, b) => b.rating - a.rating);
     } else if (sortBy === "distance") {
-      filtered.sort((a, b) => {
+      sorted.sort((a, b) => {
         const distA = a.nearMetro ? parseInt(a.nearMetro.distance) : 999;
         const distB = b.nearMetro ? parseInt(b.nearMetro.distance) : 999;
         return distA - distB;
       });
     }
 
-    return filtered;
-  }, [searchLocation, selectedCity, selectedLocation, priceFilter, typeFilter, sortBy]);
+    return sorted;
+  }, [searchLocation, selectedCity, selectedLocation, priceFilter, typeFilter, sortBy, allProperties, realProperties]);
 
   // Pagination
   const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);

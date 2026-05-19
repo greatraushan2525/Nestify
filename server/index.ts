@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import path from "path";
+import { createServer } from "http";
+import WebSocketService from "./services/websocket.service";
 
 // Load environment variables
 dotenv.config();
@@ -314,6 +316,10 @@ app.post("/api/properties", async (req: Request, res: Response) => {
   try {
     const { name, location, city, price, type, landlordId, ...rest } = req.body;
 
+    if (!landlordId) {
+      return res.status(400).json({ error: "landlordId is required" });
+    }
+
     const property = new Property({
       name,
       location,
@@ -328,6 +334,27 @@ app.post("/api/properties", async (req: Request, res: Response) => {
     res.status(201).json(property);
   } catch (error) {
     res.status(500).json({ error: "Failed to create property", details: error });
+  }
+});
+
+app.delete("/api/properties/:id", async (req: Request, res: Response) => {
+  try {
+    const property = await Property.findByIdAndDelete(req.params.id);
+    if (!property) {
+      return res.status(404).json({ error: "Property not found" });
+    }
+    res.json({ message: "Property deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete property", details: error });
+  }
+});
+
+app.get("/api/properties/landlord/:landlordId", async (req: Request, res: Response) => {
+  try {
+    const properties = await Property.find({ landlordId: req.params.landlordId });
+    res.json(properties);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch landlord properties", details: error });
   }
 });
 
@@ -442,11 +469,30 @@ app.get("/api/health", (req: Request, res: Response) => {
 app.use(express.static(path.join(appRoot, "dist/public")));
 
 // ============================================
-// Server Start
+// Server Start with WebSocket Support
 // ============================================
 
-app.listen(PORT, () => {
-  console.log(`🚀 Nestify Server running on http://localhost:${PORT}`);
+const httpServer = createServer(app);
+const wsService = new WebSocketService(httpServer);
+
+// Make WebSocket service available globally
+app.locals.wsService = wsService;
+
+// Example API endpoint to get active users
+app.get("/api/users/active", (req: Request, res: Response) => {
+  const activeUsers = wsService.getActiveUsers();
+  res.json(activeUsers);
+});
+
+// Example API endpoint to get chat history
+app.get("/api/messages/history/:userId1/:userId2", (req: Request, res: Response) => {
+  const { userId1, userId2 } = req.params;
+  const history = wsService.getChatHistory(userId1, userId2);
+  res.json(history);
+});
+
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Nestify Server with WebSocket running on http://localhost:${PORT}`);
   console.log(`📦 MongoDB URI: ${MONGODB_URI}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
 });

@@ -1,139 +1,78 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Search } from "lucide-react";
-import { useState } from "react";
+import { Send, Search, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import RealtimeChat from "@/components/RealtimeChat";
 
 /**
  * Messages Page - Messaging with landlords and other users
  * Design: Warm Hospitality
  */
 
-interface Message {
-  id: number;
-  sender: string;
-  text: string;
-  time: string;
-  isOwn: boolean;
-}
-
-interface Chat {
-  id: number;
-  name: string;
-  property: string;
-  lastMessage: string;
-  unread: number;
-  avatar: string;
-  messages: Message[];
-}
-
 export default function Messages() {
-  const [selectedChat, setSelectedChat] = useState<number | null>(1);
-  const [message, setMessage] = useState("");
+  const { user } = useAuth();
+  const [selectedChat, setSelectedChat] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [chats, setChats] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [chats, setChats] = useState<Chat[]>([
-    {
-      id: 1,
-      name: "Rajesh Kumar",
-      property: "Sunrise PG",
-      lastMessage: "Sure, you can visit tomorrow",
-      unread: 2,
-      avatar: "R",
-      messages: [
-        {
-          id: 1,
-          sender: "Rajesh Kumar",
-          text: "Hello! Are you interested in the room?",
-          time: "10:30",
-          isOwn: false,
-        },
-        {
-          id: 2,
-          sender: "You",
-          text: "Yes, I'd like to visit the property",
-          time: "10:35",
-          isOwn: true,
-        },
-        {
-          id: 3,
-          sender: "Rajesh Kumar",
-          text: "Sure, you can visit tomorrow",
-          time: "10:40",
-          isOwn: false,
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "Priya Singh",
-      property: "Green Valley",
-      lastMessage: "Booking confirmed!",
-      unread: 0,
-      avatar: "P",
-      messages: [
-        {
-          id: 1,
-          sender: "Priya Singh",
-          text: "Your booking has been confirmed",
-          time: "14:20",
-          isOwn: false,
-        },
-        {
-          id: 2,
-          sender: "You",
-          text: "Thank you!",
-          time: "14:25",
-          isOwn: true,
-        },
-      ],
-    },
-    {
-      id: 3,
-      name: "Anjali Sharma",
-      property: "Cozy Corner PG",
-      lastMessage: "Looking forward to having you",
-      unread: 1,
-      avatar: "A",
-      messages: [],
-    },
-  ]);
+  useEffect(() => {
+    if (user) {
+      fetchMessages();
+    }
+  }, [user]);
 
-  const currentChat = chats.find((c) => c.id === selectedChat);
+  const fetchMessages = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/messages/${user?.id}`);
+      if (response.ok) {
+        const messages = await response.json();
+        
+        // Group messages by conversation partner
+        const conversationMap = new Map();
+        
+        messages.forEach((msg: any) => {
+          const partner = msg.senderId._id === user?.id ? msg.receiverId : msg.senderId;
+          const partnerId = partner._id;
+          
+          if (!conversationMap.has(partnerId)) {
+            conversationMap.set(partnerId, {
+              id: partnerId,
+              name: partner.name,
+              avatar: partner.name.charAt(0),
+              lastMessage: msg.content,
+              unread: msg.read ? 0 : (msg.receiverId._id === user?.id ? 1 : 0),
+              partner: partner
+            });
+          } else {
+            const existing = conversationMap.get(partnerId);
+            // If this message is newer, update last message
+            // (assuming messages are sorted or we'd need to check timestamps)
+            existing.lastMessage = msg.content;
+            if (!msg.read && msg.receiverId._id === user?.id) {
+              existing.unread += 1;
+            }
+          }
+        });
+        
+        setChats(Array.from(conversationMap.values()));
+      }
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const filteredChats = chats.filter(
     (chat) =>
-      chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      chat.property.toLowerCase().includes(searchQuery.toLowerCase())
+      chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSendMessage = () => {
-    if (!message.trim() || !selectedChat) return;
-
-    setChats(
-      chats.map((chat) =>
-        chat.id === selectedChat
-          ? {
-              ...chat,
-              messages: [
-                ...chat.messages,
-                {
-                  id: chat.messages.length + 1,
-                  sender: "You",
-                  text: message,
-                  time: new Date().toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
-                  isOwn: true,
-                },
-              ],
-              lastMessage: message,
-            }
-          : chat
-      )
-    );
-    setMessage("");
-  };
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -142,11 +81,11 @@ export default function Messages() {
           Messages
         </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
           {/* Chat List */}
-          <div className="lg:col-span-1">
-            <Card className="rounded-2xl overflow-hidden flex flex-col h-96 lg:h-full">
-              <div className="p-4 border-b border-border">
+          <div className="lg:col-span-1 h-full">
+            <Card className="rounded-2xl overflow-hidden flex flex-col h-full shadow-sm">
+              <div className="p-4 border-b border-border bg-muted/10">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
                   <Input
@@ -158,118 +97,73 @@ export default function Messages() {
                 </div>
               </div>
               <div className="divide-y divide-border overflow-y-auto flex-1">
-                {filteredChats.map((chat) => (
-                  <button
-                    key={chat.id}
-                    onClick={() => setSelectedChat(chat.id)}
-                    className={`w-full p-4 text-left transition-colors ${
-                      selectedChat === chat.id
-                        ? "bg-primary/10"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-primary">
-                          {chat.avatar}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="font-semibold text-foreground">
-                            {chat.name}
-                          </p>
-                          {chat.unread > 0 && (
-                            <span className="bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                              {chat.unread}
-                            </span>
-                          )}
+                {isLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : filteredChats.length > 0 ? (
+                  filteredChats.map((chat) => (
+                    <button
+                      key={chat.id}
+                      onClick={() => setSelectedChat(chat)}
+                      className={`w-full p-4 text-left transition-colors ${
+                        selectedChat?.id === chat.id
+                          ? "bg-primary/10"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="font-bold text-primary">
+                            {chat.avatar}
+                          </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mb-1">
-                          {chat.property}
-                        </p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {chat.lastMessage}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-semibold text-foreground">
+                              {chat.name}
+                            </p>
+                            {chat.unread > 0 && (
+                              <span className="bg-primary text-white text-[10px] font-bold rounded-full px-2 py-0.5">
+                                {chat.unread}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {chat.lastMessage}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground text-sm">
+                    No conversations found
+                  </div>
+                )}
               </div>
             </Card>
           </div>
 
           {/* Chat Window */}
-          <div className="lg:col-span-2">
-            {currentChat ? (
-              <Card className="rounded-2xl flex flex-col h-96 lg:h-full">
-                {/* Chat Header */}
-                <div className="p-4 border-b border-border">
-                  <p className="font-semibold text-foreground">
-                    {currentChat.name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {currentChat.property}
-                  </p>
-                </div>
-
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {currentChat.messages.length > 0 ? (
-                    currentChat.messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${
-                          msg.isOwn ? "justify-end" : "justify-start"
-                        }`}
-                      >
-                        <div
-                          className={`max-w-xs px-4 py-2 rounded-2xl ${
-                            msg.isOwn
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-foreground"
-                          }`}
-                        >
-                          <p className="text-sm">{msg.text}</p>
-                          <p className="text-xs opacity-70 mt-1">{msg.time}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-muted-foreground">
-                        No messages yet. Start a conversation!
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Input */}
-                <div className="p-4 border-t border-border flex gap-2">
-                  <Input
-                    placeholder="Type a message..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        handleSendMessage();
-                      }
-                    }}
-                    className="rounded-full"
-                  />
-                  <Button
-                    size="sm"
-                    className="rounded-full"
-                    onClick={handleSendMessage}
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
+          <div className="lg:col-span-2 h-full">
+            {selectedChat ? (
+              <Card className="rounded-2xl overflow-hidden flex flex-col h-full shadow-md border-primary/10">
+                <RealtimeChat
+                  currentUserId={user.id}
+                  currentUserName={user.name}
+                  otherUserId={selectedChat.id}
+                  otherUserName={selectedChat.name}
+                />
               </Card>
             ) : (
-              <Card className="p-8 rounded-2xl text-center">
-                <p className="text-muted-foreground">
-                  Select a conversation to start messaging
+              <Card className="p-8 rounded-2xl text-center flex flex-col items-center justify-center h-full bg-muted/5 border-dashed border-2">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                  <MessageSquare className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground mb-1">Your Conversations</h3>
+                <p className="text-muted-foreground max-w-xs">
+                  Select a chat from the left to start messaging with property owners or tenants.
                 </p>
               </Card>
             )}
