@@ -60,15 +60,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setLoading(true);
 
     try {
-      const { signup } = await import("@/contexts/AuthContext").then((m) => ({
-        signup: (await import("@/contexts/AuthContext")).AuthProvider,
-      }));
-
-      // Use the auth context's signup method
-      const authModule = await import("@/contexts/AuthContext");
-      // For now, we'll use the login method after registration
-      // In production, you'd call the signup endpoint directly
-
       const response = await fetch("/api/users/register", {
         method: "POST",
         headers: {
