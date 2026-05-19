@@ -75,22 +75,23 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Registration failed");
+        throw new Error(errorData.message || errorData.error || "Registration failed");
       }
 
-      const { token } = await response.json();
-      localStorage.setItem("authToken", token);
-
-      // Switch to login form and auto-fill email
-      setLoginEmail(registerEmail);
-      setLoginPassword(registerPassword);
-      setIsLogin(true);
-      setError(null);
-
-      // Auto-login
-      setTimeout(() => {
-        handleLogin(new Event("submit") as any);
-      }, 500);
+      const data = await response.json();
+      const { token, message } = data;
+      
+      if (token) {
+        localStorage.setItem("authToken", token);
+        // Registration successful, show success message
+        setError(null);
+        // Auto-login after registration
+        setTimeout(() => {
+          handleLogin(new Event("submit") as any);
+        }, 500);
+      } else {
+        throw new Error(message || "Registration successful but no token received");
+      }
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {

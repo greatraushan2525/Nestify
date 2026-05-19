@@ -1,4 +1,4 @@
-import express, { Express, Request, Response, NextFunction } from "express";
+import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
@@ -41,8 +41,7 @@ const userSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
+    name: { type: String, required: true },
     role: { type: String, enum: ["tenant", "landlord"], required: true },
     phone: { type: String },
     avatar: { type: String },
@@ -98,10 +97,8 @@ const bookingSchema = new mongoose.Schema(
     checkInDate: { type: Date, required: true },
     checkOutDate: { type: Date, required: true },
     guestCount: { type: Number, required: true },
-    status: { type: String, enum: ["pending", "confirmed", "cancelled"], default: "pending" },
     totalPrice: { type: Number, required: true },
-    paymentStatus: { type: String, enum: ["pending", "completed", "failed"], default: "pending" },
-    stripePaymentId: String,
+    status: { type: String, enum: ["pending", "confirmed", "cancelled"], default: "pending" },
   },
   { timestamps: true }
 );
@@ -111,7 +108,6 @@ const messageSchema = new mongoose.Schema(
   {
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     receiverId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    propertyId: { type: mongoose.Schema.Types.ObjectId, ref: "Property" },
     content: { type: String, required: true },
     read: { type: Boolean, default: false },
   },
@@ -123,7 +119,7 @@ const reviewSchema = new mongoose.Schema(
   {
     propertyId: { type: mongoose.Schema.Types.ObjectId, ref: "Property", required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    rating: { type: Number, min: 1, max: 5, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String },
   },
   { timestamps: true }
@@ -137,58 +133,139 @@ const Message = mongoose.model("Message", messageSchema);
 const Review = mongoose.model("Review", reviewSchema);
 
 // ============================================
-// API Routes
+// Authentication Routes
 // ============================================
 
-// Health Check
-app.get("/api/health", (req: Request, res: Response) => {
-  res.json({ status: "✅ Server is running", timestamp: new Date() });
-});
+// Helper function to generate a simple JWT token
+function generateToken(userId: string): string {
+  // Simple token generation (In production, use a proper JWT library)
+  const payload = {
+    userId,
+    iat: Date.now(),
+  };
+  return Buffer.from(JSON.stringify(payload)).toString("base64");
+}
 
-// ============================================
-// User Routes
-// ============================================
-
+// Registration endpoint
 app.post("/api/users/register", async (req: Request, res: Response) => {
   try {
-    const { email, password, firstName, lastName, role, phone } = req.body;
+    const { email, password, name, role, phone } = req.body;
+
+    // Validation
+    if (!email || !password || !name || !role) {
+      return res.status(400).json({ 
+        message: "Missing required fields: email, password, name, role" 
+      });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ error: "User already exists" });
+      return res.status(400).json({ message: "Email already registered" });
     }
 
     // Create new user (Note: In production, hash the password)
     const user = new User({
       email,
       password, // TODO: Hash password before saving
-      firstName,
-      lastName,
+      name,
       role,
-      phone,
+      phone: phone || "",
     });
 
     await user.save();
-    res.status(201).json({ message: "User registered successfully", userId: user._id });
-  } catch (error) {
-    res.status(500).json({ error: "Registration failed", details: error });
+
+    // Generate token
+    const token = generateToken(user._id.toString());
+
+    res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        verified: user.verified,
+      },
+    });
+  } catch (error: any) {
+    console.error("Registration error:", error);
+    res.status(500).json({ 
+      message: "Registration failed",
+      error: error.message || "Unknown error"
+    });
   }
 });
 
+// Login endpoint
 app.post("/api/users/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
     // TODO: Verify password hash
-    res.json({ message: "Login successful", userId: user._id, role: user.role });
-  } catch (error) {
-    res.status(500).json({ error: "Login failed", details: error });
+    if (user.password !== password) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // Generate token
+    const token = generateToken(user._id.toString());
+
+    res.json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        verified: user.verified,
+      },
+    });
+  } catch (error: any) {
+    console.error("Login error:", error);
+    res.status(500).json({ 
+      message: "Login failed",
+      error: error.message || "Unknown error"
+    });
+  }
+});
+
+// Get current user endpoint
+app.get("/api/users/me", async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    // Decode token (simple base64 decoding for demo)
+    const payload = JSON.parse(Buffer.from(token, "base64").toString());
+    const user = await User.findById(payload.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      verified: user.verified,
+    });
+  } catch (error: any) {
+    res.status(401).json({ message: "Invalid token" });
   }
 });
 
@@ -248,27 +325,9 @@ app.post("/api/properties", async (req: Request, res: Response) => {
     });
 
     await property.save();
-    res.status(201).json({ message: "Property created successfully", propertyId: property._id });
+    res.status(201).json(property);
   } catch (error) {
     res.status(500).json({ error: "Failed to create property", details: error });
-  }
-});
-
-app.put("/api/properties/:id", async (req: Request, res: Response) => {
-  try {
-    const property = await Property.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json({ message: "Property updated successfully", property });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update property", details: error });
-  }
-});
-
-app.delete("/api/properties/:id", async (req: Request, res: Response) => {
-  try {
-    await Property.findByIdAndDelete(req.params.id);
-    res.json({ message: "Property deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete property", details: error });
   }
 });
 
@@ -290,7 +349,7 @@ app.post("/api/bookings", async (req: Request, res: Response) => {
     });
 
     await booking.save();
-    res.status(201).json({ message: "Booking created successfully", bookingId: booking._id });
+    res.status(201).json(booking);
   } catch (error) {
     res.status(500).json({ error: "Failed to create booking", details: error });
   }
@@ -311,17 +370,16 @@ app.get("/api/bookings/:userId", async (req: Request, res: Response) => {
 
 app.post("/api/messages", async (req: Request, res: Response) => {
   try {
-    const { senderId, receiverId, propertyId, content } = req.body;
+    const { senderId, receiverId, content } = req.body;
 
     const message = new Message({
       senderId,
       receiverId,
-      propertyId,
       content,
     });
 
     await message.save();
-    res.status(201).json({ message: "Message sent successfully", messageId: message._id });
+    res.status(201).json(message);
   } catch (error) {
     res.status(500).json({ error: "Failed to send message", details: error });
   }
@@ -331,11 +389,7 @@ app.get("/api/messages/:userId", async (req: Request, res: Response) => {
   try {
     const messages = await Message.find({
       $or: [{ senderId: req.params.userId }, { receiverId: req.params.userId }],
-    })
-      .populate("senderId")
-      .populate("receiverId")
-      .sort({ createdAt: -1 });
-
+    }).populate("senderId receiverId");
     res.json(messages);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch messages", details: error });
@@ -358,13 +412,7 @@ app.post("/api/reviews", async (req: Request, res: Response) => {
     });
 
     await review.save();
-
-    // Update property rating
-    const reviews = await Review.find({ propertyId });
-    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-    await Property.findByIdAndUpdate(propertyId, { rating: avgRating, reviews: reviews.length });
-
-    res.status(201).json({ message: "Review created successfully", reviewId: review._id });
+    res.status(201).json(review);
   } catch (error) {
     res.status(500).json({ error: "Failed to create review", details: error });
   }
@@ -380,36 +428,25 @@ app.get("/api/reviews/:propertyId", async (req: Request, res: Response) => {
 });
 
 // ============================================
-// Static File Serving
+// Health Check
 // ============================================
 
-const distPath = path.resolve(appRoot, "dist", "public");
-
-app.use(express.static(distPath));
-
-// SPA Fallback Route
-app.get("*", (req: Request, res: Response) => {
-  res.sendFile(path.join(distPath, "index.html"));
+app.get("/api/health", (req: Request, res: Response) => {
+  res.json({ status: "ok", message: "Nestify API is running" });
 });
 
 // ============================================
-// Error Handling Middleware
+// Static Files
 // ============================================
 
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error("❌ Error:", err);
-  res.status(500).json({ error: "Internal server error", details: err.message });
-});
+app.use(express.static(path.join(appRoot, "dist/public")));
 
 // ============================================
-// Start Server
+// Server Start
 // ============================================
 
-const port = PORT;
-const server = require("http").createServer(app);
-
-server.listen(port, () => {
-  console.log(`🚀 Nestify Server running on http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Nestify Server running on http://localhost:${PORT}`);
   console.log(`📦 MongoDB URI: ${MONGODB_URI}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
 });
